@@ -404,17 +404,17 @@ async function seedDatabase() {
     logger.info('  6. In Recovery: INV-2024-006 (Quantum Dynamics)');
     logger.info('  7. Recovered: INV-2024-007 (Orion Software Group)');
     logger.info('  8. Normal Pending: INV-2024-008 (Starlight Media Works)');
-
-    process.exit(0);
   } catch (error) {
     logger.error('[Seed] Database seeding failed:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
 // Execute seed if run directly
 if (require.main === module) {
-  seedDatabase();
+  seedDatabase()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
 
 module.exports = { seedDatabase };
