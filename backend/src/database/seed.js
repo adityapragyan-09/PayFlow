@@ -9,7 +9,7 @@ const invoicesData = [
     customer_name: 'Apex Global Logistics Inc.',
     customer_email: 'ap-billing@apexlogistics-demo.com',
     amount: 14500.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-02-01',
     due_date: '2024-03-01',
     status: 'overdue',
@@ -18,7 +18,7 @@ const invoicesData = [
       {
         communication_type: 'email',
         sender: 'finance_team',
-        message: 'Hi Apex AP team, invoice INV-2024-001 for $14,500.00 was due on March 1st. Please provide a payment update.',
+        message: 'Hi Apex AP team, invoice INV-2024-001 for ₹14,500.00 was due on March 1st. Please provide a payment update.',
         timestamp: '2024-03-05 10:15:00'
       },
       {
@@ -48,7 +48,7 @@ const invoicesData = [
     customer_name: 'Nexus Health Systems',
     customer_email: 'finance@nexushealth-demo.org',
     amount: 32400.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-02-15',
     due_date: '2024-03-15',
     status: 'overdue',
@@ -63,14 +63,14 @@ const invoicesData = [
       {
         communication_type: 'email',
         sender: 'customer',
-        message: 'Hello, the invoice has been approved by the IT Director and is currently routed to our VP of Finance for final secondary authorization. Invoices over $25,000 require dual executive sign-off. The executive committee meets every Thursday to sign off batches.',
+        message: 'Hello, the invoice has been approved by the IT Director and is currently routed to our VP of Finance for final secondary authorization. Invoices over ₹25,000.00 require dual executive sign-off. The executive committee meets every Thursday to sign off batches.',
         timestamp: '2024-03-19 11:20:00'
       }
     ],
     ai_analysis: {
       reason_category: 'approval_pending',
       confidence: 0.92,
-      explanation: 'Invoice exceeds the customer internal threshold ($25k) and is awaiting VP of Finance secondary sign-off during the Thursday batch review.',
+      explanation: 'Invoice exceeds the customer internal threshold (₹25,000.00) and is awaiting VP of Finance secondary sign-off during the Thursday batch review.',
       recommended_action: 'request_approval_followup',
       generated_response: 'Hi Nexus Health Team, thank you for the update on the executive sign-off schedule. We will pause payment reminders and check back this Friday after your Thursday executive authorization batch.'
     },
@@ -83,7 +83,7 @@ const invoicesData = [
     customer_name: 'Vanguard Tech Solutions',
     customer_email: 'accounts@vanguardtech-demo.io',
     amount: 8750.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-03-01',
     due_date: '2024-03-31',
     status: 'overdue',
@@ -92,7 +92,7 @@ const invoicesData = [
       {
         communication_type: 'email',
         sender: 'customer',
-        message: 'We received invoice INV-2024-003, but there is an error in the billing computation. You charged sales tax at 8.75% ($700), but we provided our Delaware tax-exempt certificate (EX-9921) upon contract signing. Also, the entity address lists our prior New York office instead of Austin headquarters.',
+        message: 'We received invoice INV-2024-003, but there is an error in the billing computation. You charged sales tax at 8.75% (₹700.00), but we provided our tax-exempt certificate (EX-9921) upon contract signing. Also, the entity address lists our prior office instead of headquarters.',
         timestamp: '2024-04-02 16:45:00'
       }
     ],
@@ -101,7 +101,7 @@ const invoicesData = [
       confidence: 0.95,
       explanation: 'Invoice contains tax computation error (tax-exempt client charged sales tax) and an outdated corporate billing address.',
       recommended_action: 'send_corrected_invoice',
-      generated_response: 'Hi Vanguard Accounts Team, apologies for the clerical oversight regarding your tax exemption (EX-9921) and updated Austin HQ address. We have zeroed out the tax charge and generated corrected invoice INV-2024-003-R for $8,050.00.'
+      generated_response: 'Hi Vanguard Accounts Team, apologies for the clerical oversight regarding your tax exemption (EX-9921) and updated headquarters address. We have zeroed out the tax charge and generated corrected invoice INV-2024-003-R for ₹8,050.00.'
     },
     recovery_action: {
       action_type: 'send_corrected_invoice',
@@ -116,7 +116,7 @@ const invoicesData = [
     customer_name: 'Meridian Cloud Networks',
     customer_email: 'procurement@meridiancloud-demo.net',
     amount: 19800.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-02-20',
     due_date: '2024-03-20',
     status: 'disputed',
@@ -125,13 +125,13 @@ const invoicesData = [
       {
         communication_type: 'email',
         sender: 'finance_team',
-        message: 'Follow-up regarding overdue payment for invoice INV-2024-004 ($19,800.00).',
+        message: 'Follow-up regarding overdue payment for invoice INV-2024-004 (₹19,800.00).',
         timestamp: '2024-03-22 14:00:00'
       },
       {
         communication_type: 'email',
         sender: 'customer',
-        message: 'We are disputing line item #2 on this invoice. The SOW clearly established a capped budget of 40 consulting hours ($6,000) for data migration, but you have invoiced for 82 hours ($12,300). No change order was approved for the excess hours. We will not release payment until the excess hours are credited.',
+        message: 'We are disputing line item #2 on this invoice. The SOW clearly established a capped budget of 40 consulting hours (₹6,000.00) for data migration, but you have invoiced for 82 hours (₹12,300.00). No change order was approved for the excess hours. We will not release payment until the excess hours are credited.',
         timestamp: '2024-03-23 10:10:00'
       }
     ],
@@ -151,7 +151,7 @@ const invoicesData = [
     customer_name: 'Hyperion Digital Media LLC',
     customer_email: 'accounts@hyperionmedia-demo.com',
     amount: 6200.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-01-10',
     due_date: '2024-02-10',
     status: 'overdue',
@@ -160,7 +160,7 @@ const invoicesData = [
       {
         communication_type: 'email',
         sender: 'finance_team',
-        message: 'First reminder: Invoice INV-2024-005 for $6,200.00 is due on February 10th.',
+        message: 'First reminder: Invoice INV-2024-005 for ₹6,200.00 is due on February 10th.',
         timestamp: '2024-02-05 09:00:00'
       },
       {
@@ -181,7 +181,7 @@ const invoicesData = [
       confidence: 0.96,
       explanation: 'Customer has failed to reply or acknowledge 3 consecutive overdue notices over a 45-day duration.',
       recommended_action: 'escalate_reminder',
-      generated_response: 'Hi Hyperion Digital Accounts, we have attempted to contact you multiple times regarding invoice INV-2024-005 ($6,200.00). Please provide payment status within 48 hours to avoid account suspension or escalation to collections.'
+      generated_response: 'Hi Hyperion Digital Accounts, we have attempted to contact you multiple times regarding invoice INV-2024-005 (₹6,200.00). Please provide payment status within 48 hours to avoid account suspension or escalation to collections.'
     },
     recovery_action: null
   },
@@ -192,7 +192,7 @@ const invoicesData = [
     customer_name: 'Quantum Dynamics Corp',
     customer_email: 'payables@quantumdynamics-demo.com',
     amount: 27500.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-02-25',
     due_date: '2024-03-25',
     status: 'in_recovery',
@@ -225,7 +225,7 @@ const invoicesData = [
     customer_name: 'Orion Software Group',
     customer_email: 'billing@orionsoftware-demo.com',
     amount: 12000.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-01-15',
     due_date: '2024-02-15',
     status: 'recovered',
@@ -258,7 +258,7 @@ const invoicesData = [
     customer_name: 'Starlight Media Works',
     customer_email: 'accounts@starlightmedia-demo.com',
     amount: 5400.00,
-    currency: 'USD',
+    currency: 'INR',
     issue_date: '2024-03-25',
     due_date: '2024-04-25',
     status: 'pending',
@@ -314,7 +314,7 @@ async function seedDatabase() {
         [
           invoiceId,
           'invoice_created',
-          `Invoice ${inv.invoice_number} created for ${inv.customer_name} (${inv.currency} ${inv.amount.toFixed(2)})`,
+          `Invoice ${inv.invoice_number} created for ${inv.customer_name} (${new Intl.NumberFormat('en-IN', { style: 'currency', currency: inv.currency || 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(inv.amount)})`,
           JSON.stringify({ amount: inv.amount, currency: inv.currency, status: inv.status })
         ]
       );

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
   amount REAL NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'USD',
+  currency TEXT NOT NULL DEFAULT 'INR',
   issue_date TEXT NOT NULL,
   due_date TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',

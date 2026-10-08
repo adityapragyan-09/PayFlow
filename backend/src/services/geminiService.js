@@ -82,7 +82,7 @@ categorize the reason, calculate confidence, recommend the next recovery action,
 - Invoice Number: ${invoice.invoice_number}
 - Customer Name: ${invoice.customer_name}
 - Customer Email: ${invoice.customer_email}
-- Amount: ${invoice.amount} ${invoice.currency || 'USD'}
+- Amount: ${invoice.amount} ${invoice.currency || 'INR'}
 - Issue Date: ${invoice.issue_date}
 - Due Date: ${invoice.due_date}
 - Current Status: ${invoice.status}
@@ -130,7 +130,7 @@ function analyzeWithHeuristics(invoice, communications) {
   let category = 'other';
   let explanation = 'Invoice payment is delayed and requires review.';
   let recommended = 'manual_review';
-  let responseMsg = `Hi ${invoice.customer_name}, we are following up regarding invoice ${invoice.invoice_number} for ${invoice.amount} ${invoice.currency || 'USD'}. Please let us know the current payment status.`;
+  let responseMsg = `Hi ${invoice.customer_name}, we are following up regarding invoice ${invoice.invoice_number} for ${invoice.amount} ${invoice.currency || 'INR'}. Please let us know the current payment status.`;
   let confidence = 0.85;
 
   if (allText.includes('po') || allText.includes('purchase order') || allText.includes('procurement')) {
@@ -161,7 +161,7 @@ function analyzeWithHeuristics(invoice, communications) {
     category = 'no_response';
     explanation = 'Multiple reminders have been sent to the customer without any acknowledgment or payment confirmation.';
     recommended = 'escalate_reminder';
-    responseMsg = `Hi ${invoice.customer_name}, we have sent multiple reminders regarding overdue invoice ${invoice.invoice_number} (${invoice.amount} ${invoice.currency || 'USD'}). Please respond urgently to avoid service disruption or escalation.`;
+    responseMsg = `Hi ${invoice.customer_name}, we have sent multiple reminders regarding overdue invoice ${invoice.invoice_number} (${invoice.amount} ${invoice.currency || 'INR'}). Please respond urgently to avoid service disruption or escalation.`;
     confidence = 0.88;
   }
 

@@ -15,7 +15,7 @@ async function uploadInvoice(req, res) {
       customer_name,
       customer_email,
       amount,
-      currency = 'USD',
+      currency = 'INR',
       issue_date,
       due_date,
       status,

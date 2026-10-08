@@ -4,6 +4,7 @@
 // The backend does not implement authentication, so requests are unauthenticated.
 
 import { ApiError, request } from "./http.js";
+import { DEFAULT_CURRENCY, formatCurrency } from "../utils/currency.js";
 
 const REASON_LABELS = {
   missing_po: "Missing documentation",
@@ -106,17 +107,8 @@ function toPercent(confidence) {
   return Math.max(0, Math.min(100, Math.round(percent)));
 }
 
-function formatMoney(amount, currency = "USD") {
-  const code = currency && currency.length === 3 ? currency : "USD";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: code,
-      maximumFractionDigits: 0,
-    }).format(Number(amount) || 0);
-  } catch {
-    return `$${Math.round(Number(amount) || 0).toLocaleString("en-US")}`;
-  }
+function formatMoney(amount, currency = DEFAULT_CURRENCY) {
+  return formatCurrency(amount, currency || DEFAULT_CURRENCY);
 }
 
 function formatTimestamp(timestamp) {
@@ -401,7 +393,7 @@ export const invoiceService = {
     ]);
     const stats = dashboard?.stats || {};
     const rows = invoices || [];
-    const currency = rows[0]?.currency || "USD";
+    const currency = rows[0]?.currency || DEFAULT_CURRENCY;
     const overdueRows = rows.filter((row) => row.status === "overdue");
     const overdueAmount = overdueRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const blockedRows = rows.filter((row) =>

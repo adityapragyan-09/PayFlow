@@ -68,7 +68,7 @@ The SQLite database (`data/payflow.db`) automatically initializes the following 
    - `customer_name`: TEXT NOT NULL
    - `customer_email`: TEXT NOT NULL
    - `amount`: REAL NOT NULL
-   - `currency`: TEXT NOT NULL (Default: `'USD'`)
+   - `currency`: TEXT NOT NULL (Default: `'INR'`)
    - `issue_date`: TEXT NOT NULL (YYYY-MM-DD)
    - `due_date`: TEXT NOT NULL (YYYY-MM-DD)
    - `status`: TEXT NOT NULL (`'pending'`, `'overdue'`, `'in_recovery'`, `'recovered'`, `'disputed'`)
