@@ -81,12 +81,16 @@ categorize the reason, calculate confidence, recommend the next recovery action,
 ### INVOICE DETAILS:
 - Invoice Number: ${invoice.invoice_number}
 - Customer Name: ${invoice.customer_name}
+- Customer Company: ${invoice.customer_company || 'N/A'}
 - Customer Email: ${invoice.customer_email}
 - Amount: ${invoice.amount} ${invoice.currency || 'INR'}
 - Issue Date: ${invoice.issue_date}
 - Due Date: ${invoice.due_date}
+- Payment Terms: ${invoice.payment_terms || 'N/A'}
+- Purchase Order: ${invoice.purchase_order || 'N/A'}
 - Current Status: ${invoice.status}
 - Description: ${invoice.description || 'N/A'}
+- Notes: ${invoice.notes || 'N/A'}
 
 ### COMMUNICATIONS HISTORY:
 ${commsText}

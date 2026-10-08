@@ -110,15 +110,18 @@ export default function Dashboard() {
             </p>
           </div>
           <Link
-            to="/invoices"
+            to={invoices.length === 0 ? "/invoices/new" : "/invoices"}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 self-start sm:self-auto"
           >
-            <span>View All {invoices.length} Invoices</span>
+            <span>{invoices.length === 0 ? "Add an invoice" : `View All ${invoices.length} Invoices`}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <InvoiceTable invoices={invoices} />
+        <InvoiceTable
+          invoices={invoices}
+          emptyLabel="No invoices yet. Create one from the Invoices directory."
+        />
       </div>
     </div>
   );

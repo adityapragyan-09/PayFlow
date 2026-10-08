@@ -230,6 +230,23 @@ export default function InvoiceDetails() {
                 </span>
               </div>
 
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Currency:</span>
+                <span className="font-medium text-slate-700">{invoice.currency}</span>
+              </div>
+              {invoice.paymentTerms ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500">Payment Terms:</span>
+                  <span className="font-medium text-slate-700">{invoice.paymentTerms}</span>
+                </div>
+              ) : null}
+              {invoice.purchaseOrder ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-slate-500">Purchase Order:</span>
+                  <span className="font-mono font-medium text-slate-700">{invoice.purchaseOrder}</span>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Total Due:</span>
                 <span className="text-base font-bold text-slate-900">

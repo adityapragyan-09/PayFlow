@@ -35,6 +35,14 @@ export default function RecoveryQueue({ queue = [] }) {
 
       {/* Queue items */}
       <div className="divide-y divide-slate-100">
+        {queue.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <h4 className="text-sm font-semibold text-slate-800">No recovery items yet</h4>
+            <p className="text-xs text-slate-500 mt-1">
+              Overdue and blocked invoices will appear here after you add them.
+            </p>
+          </div>
+        ) : null}
         {queue.slice(0, 4).map((invoice) => (
           <div
             key={invoice.id}

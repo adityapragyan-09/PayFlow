@@ -2,8 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config/env');
 const { initSchema } = require('./database/schema');
-const { db, close, get } = require('./database/db');
-const { seedDatabase } = require('./database/seed');
+const { db, close } = require('./database/db');
 const routes = require('./routes');
 const { notFoundHandler, jsonErrorHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -96,12 +95,6 @@ async function startServer() {
   try {
     // 1. Initialize SQLite Schema
     await initSchema();
-
-    const existing = await get('SELECT COUNT(*) AS count FROM invoices');
-    if (!existing || Number(existing.count) === 0) {
-      logger.info('[App] Invoice table is empty. Loading demo data.');
-      await seedDatabase();
-    }
 
     // 2. Start HTTP Listener
     server = app.listen(config.port, () => {

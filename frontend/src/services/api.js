@@ -166,14 +166,15 @@ function deriveWorkflowStage(status, hasAnalysis, hasRecovery) {
 }
 
 function mapCustomer(row) {
+  const organization = row.customer_company || row.customer_name;
   return {
-    name: row.customer_name,
+    name: organization,
     domain: domainFromEmail(row.customer_email),
     contactName: row.customer_name,
     contactTitle: "Accounts Payable",
     contactEmail: row.customer_email,
     tier: "Customer",
-    initials: initialsFromName(row.customer_name),
+    initials: initialsFromName(organization),
   };
 }
 
@@ -293,6 +294,10 @@ function mapInvoiceSummary(row) {
     generatedResponse: null,
     timeline: [],
     description: row.description || "",
+    currency: row.currency || DEFAULT_CURRENCY,
+    paymentTerms: row.payment_terms || "",
+    purchaseOrder: row.purchase_order || "",
+    notes: row.notes || "",
   };
 }
 
@@ -370,6 +375,14 @@ function mapActivityItem(event) {
 }
 
 export const invoiceService = {
+  async create(payload) {
+    const created = await request("/api/invoices", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return created;
+  },
+
   async getAll() {
     const rows = await request("/api/invoices");
     return (rows || []).map(mapInvoiceSummary);

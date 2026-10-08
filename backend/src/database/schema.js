@@ -1,4 +1,15 @@
-const { exec } = require('./db');
+const { exec, get, all, run } = require('./db');
+
+const DEMO_INVOICE_NUMBERS = [
+  'INV-2024-001',
+  'INV-2024-002',
+  'INV-2024-003',
+  'INV-2024-004',
+  'INV-2024-005',
+  'INV-2024-006',
+  'INV-2024-007',
+  'INV-2024-008'
+];
 
 const schemaSQL = `
 CREATE TABLE IF NOT EXISTS invoices (
@@ -64,14 +75,64 @@ CREATE INDEX IF NOT EXISTS idx_communications_invoice_id ON communications(invoi
 CREATE INDEX IF NOT EXISTS idx_ai_analysis_invoice_id ON ai_analysis(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_recovery_actions_invoice_id ON recovery_actions(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_activity_timeline_invoice_id ON activity_timeline(invoice_id);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 /**
  * Initialize all database tables and indices
  */
+async function addColumnIfMissing(name, definition) {
+  try {
+    await run(`ALTER TABLE invoices ADD COLUMN ${name} ${definition}`);
+  } catch (error) {
+    if (!/duplicate column name/i.test(error.message)) {
+      throw error;
+    }
+  }
+}
+
+async function purgeDemoInvoices() {
+  const flag = await get(`SELECT value FROM app_settings WHERE key = 'demo_invoices_purged'`);
+  if (flag && flag.value === '1') return 0;
+
+  const placeholders = DEMO_INVOICE_NUMBERS.map(() => '?').join(', ');
+  const rows = await all(
+    `SELECT id FROM invoices WHERE invoice_number IN (${placeholders})`,
+    DEMO_INVOICE_NUMBERS
+  );
+  const ids = rows.map((row) => row.id);
+
+  if (ids.length > 0) {
+    const idPlaceholders = ids.map(() => '?').join(', ');
+    await run(`DELETE FROM communications WHERE invoice_id IN (${idPlaceholders})`, ids);
+    await run(`DELETE FROM ai_analysis WHERE invoice_id IN (${idPlaceholders})`, ids);
+    await run(`DELETE FROM recovery_actions WHERE invoice_id IN (${idPlaceholders})`, ids);
+    await run(`DELETE FROM activity_timeline WHERE invoice_id IN (${idPlaceholders})`, ids);
+    await run(`DELETE FROM invoices WHERE id IN (${idPlaceholders})`, ids);
+  }
+
+  await run(
+    `INSERT INTO app_settings (key, value) VALUES ('demo_invoices_purged', '1')
+     ON CONFLICT(key) DO UPDATE SET value = '1'`
+  );
+  return ids.length;
+}
+
 async function initSchema() {
   try {
     await exec(schemaSQL);
+    await addColumnIfMissing('customer_company', 'TEXT');
+    await addColumnIfMissing('payment_terms', 'TEXT');
+    await addColumnIfMissing('purchase_order', 'TEXT');
+    await addColumnIfMissing('notes', 'TEXT');
+    const removed = await purgeDemoInvoices();
+    if (removed > 0) {
+      console.log(`[Database] Removed ${removed} demo invoice(s).`);
+    }
     console.log('[Database] Schema initialized successfully.');
   } catch (error) {
     console.error('[Database] Failed to initialize schema:', error);
@@ -80,5 +141,6 @@ async function initSchema() {
 }
 
 module.exports = {
-  initSchema
+  initSchema,
+  purgeDemoInvoices
 };

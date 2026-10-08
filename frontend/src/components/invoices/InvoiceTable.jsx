@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import StatusBadge from "../common/StatusBadge";
 import BlockerBadge from "../common/BlockerBadge";
 
-export default function InvoiceTable({ invoices = [] }) {
+export default function InvoiceTable({ invoices = [], emptyLabel = "No invoices found matching current filter criteria." }) {
   const navigate = useNavigate();
 
   return (
@@ -27,15 +27,22 @@ export default function InvoiceTable({ invoices = [] }) {
             {invoices.length === 0 ? (
               <tr>
                 <td colSpan="8" className="py-12 text-center text-slate-400">
-                  No invoices found matching current filter criteria.
+                  {emptyLabel}
                 </td>
               </tr>
             ) : (
               invoices.map((inv) => (
                 <tr
                   key={inv.id}
+                  tabIndex={0}
                   onClick={() => navigate(`/invoices/${inv.id}`)}
-                  className="hover:bg-slate-50/90 transition-colors cursor-pointer group"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigate(`/invoices/${inv.id}`);
+                    }
+                  }}
+                  className="hover:bg-slate-50/90 focus:bg-indigo-50/60 focus:outline-hidden transition-colors cursor-pointer group"
                 >
                   {/* Invoice # */}
                   <td className="py-3.5 px-4 font-mono font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
@@ -103,7 +110,7 @@ export default function InvoiceTable({ invoices = [] }) {
                       }}
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
                     >
-                      <span>Analyze</span>
+                      <span>View Invoice</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </td>

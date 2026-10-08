@@ -5,6 +5,7 @@ const recoveryController = require('../controllers/recoveryController');
 const timelineController = require('../controllers/timelineController');
 
 // Invoices CRUD & Search
+router.post('/', invoiceController.createInvoice);
 router.post('/upload', invoiceController.uploadInvoice);
 router.get('/', invoiceController.getInvoices);
 router.get('/:id', invoiceController.getInvoiceById);

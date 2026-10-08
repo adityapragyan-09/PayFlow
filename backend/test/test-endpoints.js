@@ -44,10 +44,10 @@ async function runTests() {
       const res = await fetch(`${BASE_URL}/invoices`);
       if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
       const data = await res.json();
-      if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
-        throw new Error('Expected non-empty array of invoices');
+      if (!data.success || !Array.isArray(data.data)) {
+        throw new Error('Expected an array of invoices');
       }
-      sampleInvoiceId = data.data[0].id;
+      sampleInvoiceId = data.data[0] ? data.data[0].id : null;
     });
 
     // Test 3: List Invoices with filter & search
@@ -62,7 +62,27 @@ async function runTests() {
     });
 
     // Test 4: Get Single Invoice by ID
-    await assertTest(`GET /api/invoices/${sampleInvoiceId}`, async () => {
+    await assertTest(`GET /api/invoices/${sampleInvoiceId || 'created'}`, async () => {
+      if (!sampleInvoiceId) {
+        const created = await fetch(`${BASE_URL}/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoice_number: `LOOKUP-${Date.now()}`,
+            customer_name: 'Lookup Contact',
+            customer_email: 'lookup@example.com',
+            customer_company: 'Lookup Co',
+            amount: 100,
+            currency: 'INR',
+            issue_date: '2026-10-01',
+            due_date: '2026-10-20',
+            payment_terms: 'Net 12'
+          })
+        });
+        const createdBody = await created.json();
+        if (created.status !== 201) throw new Error(`Could not create lookup invoice: ${created.status}`);
+        sampleInvoiceId = createdBody.data.id;
+      }
       const res = await fetch(`${BASE_URL}/invoices/${sampleInvoiceId}`);
       if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
       const data = await res.json();
@@ -77,6 +97,54 @@ async function runTests() {
       if (res.status !== 404) throw new Error(`Expected 404, got ${res.status}`);
       const data = await res.json();
       if (data.success !== false) throw new Error('Expected success: false for 404');
+    });
+
+    await assertTest('POST /api/invoices (invalid amount)', async () => {
+      const res = await fetch(`${BASE_URL}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_number: `BAD-${Date.now()}`,
+          customer_name: 'Bad Amount',
+          customer_email: 'bad@example.com',
+          customer_company: 'Bad Co',
+          amount: 0,
+          currency: 'INR',
+          issue_date: '2026-10-08',
+          due_date: '2026-10-20',
+          payment_terms: 'Net 12'
+        })
+      });
+      if (res.status !== 400) throw new Error(`Expected 400, got ${res.status}`);
+      const data = await res.json();
+      if (data.success !== false) throw new Error('Expected validation failure');
+    });
+
+    const duplicateNumber = `DUP-${Date.now()}`;
+    await assertTest('POST /api/invoices (duplicate invoice number)', async () => {
+      const payload = {
+        invoice_number: duplicateNumber,
+        customer_name: 'Demo Technologies',
+        customer_email: 'finance@demotechnologies.com',
+        customer_company: 'Demo Technologies Pvt Ltd',
+        amount: 25000,
+        currency: 'INR',
+        issue_date: '2026-10-08',
+        due_date: '2026-10-20',
+        payment_terms: 'Net 12'
+      };
+      const first = await fetch(`${BASE_URL}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (first.status !== 201) throw new Error(`Expected 201, got ${first.status}`);
+      const second = await fetch(`${BASE_URL}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (second.status !== 409) throw new Error(`Expected 409, got ${second.status}`);
     });
 
     // Test 6: Upload Invoice (Success)

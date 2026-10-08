@@ -102,7 +102,9 @@ export default function Activity() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            No events found in this category.
+            {activities.length === 0
+              ? "No activity yet. Create an invoice to start the audit trail."
+              : "No events found in this category."}
           </div>
         ) : (
           filtered.map((item) => (

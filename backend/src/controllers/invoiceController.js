@@ -4,6 +4,157 @@ const { analyzeInvoice } = require('../services/geminiService');
 const { recordEvent } = require('../services/timelineService');
 const logger = require('../utils/logger');
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CURRENCY = /^[A-Z]{3}$/;
+
+function isRealDate(value) {
+  if (typeof value !== 'string' || !ISO_DATE.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function cleanText(value, maxLength) {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+}
+
+function validateCreatePayload(body, { invoiceNumberRequired, paymentTermsRequired }) {
+  const invoiceNumber = cleanText(body.invoice_number, 40);
+  const customerName = cleanText(body.customer_name, 160);
+  const customerEmail = cleanText(body.customer_email, 160).toLowerCase();
+  const customerCompany = cleanText(body.customer_company, 160);
+  const paymentTerms = cleanText(body.payment_terms, 80);
+  const purchaseOrder = cleanText(body.purchase_order, 80);
+  const notes = cleanText(body.notes, 2000);
+  const description = cleanText(body.description, 2000);
+  const currency = cleanText(body.currency || 'INR', 3).toUpperCase();
+  const issueDate = cleanText(body.issue_date, 10);
+  const dueDate = cleanText(body.due_date, 10);
+  const amount = Number(body.amount);
+
+  if (invoiceNumberRequired && !invoiceNumber) {
+    return { error: 'Invoice number is required.' };
+  }
+  if (!customerName) {
+    return { error: 'Customer name is required.' };
+  }
+  if (!customerEmail || !EMAIL.test(customerEmail)) {
+    return { error: 'A valid customer email is required.' };
+  }
+  if (paymentTermsRequired && !customerCompany) {
+    return { error: 'Customer company is required.' };
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: 'Amount must be greater than 0.' };
+  }
+  if (!CURRENCY.test(currency)) {
+    return { error: 'Currency must be a 3-letter code such as INR.' };
+  }
+  if (!isRealDate(issueDate)) {
+    return { error: 'Issue date must be a valid date (YYYY-MM-DD).' };
+  }
+  if (!isRealDate(dueDate)) {
+    return { error: 'Due date must be a valid date (YYYY-MM-DD).' };
+  }
+  if (dueDate < issueDate) {
+    return { error: 'Due date cannot be earlier than the issue date.' };
+  }
+  if (paymentTermsRequired && !paymentTerms) {
+    return { error: 'Payment terms are required.' };
+  }
+
+  return {
+    value: {
+      invoiceNumber,
+      customerName,
+      customerEmail,
+      customerCompany: customerCompany || null,
+      paymentTerms: paymentTerms || null,
+      purchaseOrder: purchaseOrder || null,
+      notes: notes || null,
+      description: description || null,
+      currency,
+      issueDate,
+      dueDate,
+      amount
+    }
+  };
+}
+
+async function insertInvoice(fields, extras = {}) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const finalInvoiceNumber = fields.invoiceNumber || `INV-${Date.now()}`;
+  const existing = await get('SELECT id FROM invoices WHERE invoice_number = ?', [finalInvoiceNumber]);
+  if (existing) {
+    const duplicate = new Error(`Invoice number '${finalInvoiceNumber}' already exists.`);
+    duplicate.statusCode = 409;
+    throw duplicate;
+  }
+
+  let finalStatus = extras.status;
+  if (!finalStatus) {
+    finalStatus = fields.dueDate < todayStr ? 'overdue' : 'pending';
+  }
+
+  const insertResult = await run(
+    `INSERT INTO invoices (
+      invoice_number, customer_name, customer_email, customer_company, amount, currency,
+      issue_date, due_date, status, description, payment_terms, purchase_order, notes,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    [
+      finalInvoiceNumber,
+      fields.customerName,
+      fields.customerEmail,
+      fields.customerCompany,
+      fields.amount,
+      fields.currency,
+      fields.issueDate,
+      fields.dueDate,
+      finalStatus,
+      fields.description,
+      fields.paymentTerms,
+      fields.purchaseOrder,
+      fields.notes
+    ]
+  );
+
+  await recordEvent(
+    insertResult.id,
+    'invoice_created',
+    `Invoice ${finalInvoiceNumber} created for ${fields.customerCompany || fields.customerName} (${fields.currency} ${fields.amount.toFixed(2)})`,
+    { amount: fields.amount, currency: fields.currency, due_date: fields.dueDate, status: finalStatus }
+  );
+
+  return get('SELECT * FROM invoices WHERE id = ?', [insertResult.id]);
+}
+
+/**
+ * POST /api/invoices
+ * Create an invoice from the PayFlow form.
+ */
+async function createInvoice(req, res) {
+  try {
+    const parsed = validateCreatePayload(req.body || {}, {
+      invoiceNumberRequired: true,
+      paymentTermsRequired: true
+    });
+    if (parsed.error) {
+      return error(res, parsed.error, 400);
+    }
+    const created = await insertInvoice(parsed.value);
+    return success(res, created, 201, 'Invoice created');
+  } catch (err) {
+    if (err.statusCode === 409) {
+      return error(res, err.message, 409);
+    }
+    logger.error('[InvoiceController] createInvoice error:', err);
+    return error(res, 'The invoice could not be created.', 500);
+  }
+}
+
 /**
  * POST /api/invoices/upload
  * Create a new invoice with optional initial communication
@@ -40,52 +191,34 @@ async function uploadInvoice(req, res) {
     const todayStr = new Date().toISOString().split('T')[0];
     const finalIssueDate = issue_date || todayStr;
     const finalDueDate = due_date;
-
-    // Auto-generate invoice number if not provided
     const finalInvoiceNumber = invoice_number && invoice_number.trim() !== ''
       ? invoice_number.trim()
-      : `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+      : '';
 
-    // Check for duplicate invoice_number
-    const existing = await get('SELECT id FROM invoices WHERE invoice_number = ?', [finalInvoiceNumber]);
-    if (existing) {
-      return error(res, `Invoice with number '${finalInvoiceNumber}' already exists`, 409);
+    let createdInvoice;
+    try {
+      createdInvoice = await insertInvoice({
+        invoiceNumber: finalInvoiceNumber,
+        customerName: customer_name.trim(),
+        customerEmail: customer_email.trim().toLowerCase(),
+        customerCompany: null,
+        paymentTerms: null,
+        purchaseOrder: null,
+        notes: null,
+        description: description ? description.trim() : null,
+        currency: (currency || 'INR').trim().toUpperCase(),
+        issueDate: finalIssueDate,
+        dueDate: finalDueDate,
+        amount: Number(amount)
+      }, { status });
+    } catch (insertError) {
+      if (insertError.statusCode === 409) {
+        return error(res, insertError.message, 409);
+      }
+      throw insertError;
     }
 
-    // Default status: if due_date is in the past, default to 'overdue', else 'pending'
-    let finalStatus = status;
-    if (!finalStatus) {
-      finalStatus = new Date(finalDueDate) < new Date(todayStr) ? 'overdue' : 'pending';
-    }
-
-    // Insert invoice
-    const insertResult = await run(
-      `INSERT INTO invoices (
-        invoice_number, customer_name, customer_email, amount, currency,
-        issue_date, due_date, status, description, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      [
-        finalInvoiceNumber,
-        customer_name.trim(),
-        customer_email.trim(),
-        Number(amount),
-        currency.trim().toUpperCase(),
-        finalIssueDate,
-        finalDueDate,
-        finalStatus,
-        description ? description.trim() : null
-      ]
-    );
-
-    const invoiceId = insertResult.id;
-
-    // Log timeline event
-    await recordEvent(
-      invoiceId,
-      'invoice_created',
-      `Invoice ${finalInvoiceNumber} created for ${customer_name.trim()} (${currency} ${Number(amount).toFixed(2)})`,
-      { amount: Number(amount), currency, due_date: finalDueDate, status: finalStatus }
-    );
+    const invoiceId = createdInvoice.id;
 
     // Optional initial communication
     if (initial_communication) {
@@ -111,7 +244,6 @@ async function uploadInvoice(req, res) {
       }
     }
 
-    const createdInvoice = await get('SELECT * FROM invoices WHERE id = ?', [invoiceId]);
     return success(res, createdInvoice, 201, 'Invoice uploaded successfully');
   } catch (err) {
     logger.error('[InvoiceController] uploadInvoice error:', err);
@@ -180,9 +312,11 @@ async function getInvoices(req, res) {
         i.invoice_number LIKE ? OR
         i.customer_name LIKE ? OR
         i.customer_email LIKE ? OR
-        i.description LIKE ?
+        i.customer_company LIKE ? OR
+        i.description LIKE ? OR
+        i.purchase_order LIKE ?
       )`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     // Safe sorting
@@ -445,6 +579,7 @@ async function updateStatus(req, res) {
 }
 
 module.exports = {
+  createInvoice,
   uploadInvoice,
   getInvoices,
   getInvoiceById,

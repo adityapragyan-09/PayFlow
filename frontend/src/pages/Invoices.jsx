@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { invoiceService } from "../services/api";
 import InvoiceTable from "../components/invoices/InvoiceTable";
 import ErrorState from "../components/common/ErrorState";
-import { Search, RefreshCw, X } from "lucide-react";
+import { Plus, Search, RefreshCw, X } from "lucide-react";
 
 const STATUSES = ["All", "Blocked", "Recovery Ready", "Overdue", "Pending", "Paid"];
 const BLOCKERS = [
@@ -68,6 +69,8 @@ export default function Invoices() {
         (inv) =>
           inv.invoiceNumber.toLowerCase().includes(q) ||
           inv.customer.name.toLowerCase().includes(q) ||
+          inv.customer.contactName.toLowerCase().includes(q) ||
+          inv.customer.contactEmail.toLowerCase().includes(q) ||
           inv.blocker.toLowerCase().includes(q)
       );
     }
@@ -104,13 +107,22 @@ export default function Invoices() {
           </p>
         </div>
 
-        <button
-          onClick={loadAllInvoices}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs transition-colors self-start sm:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-          <span>Refresh Ledger</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={loadAllInvoices}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            <span>Refresh Ledger</span>
+          </button>
+          <Link
+            to="/invoices/new"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Invoice</span>
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters Bar */}
@@ -201,6 +213,20 @@ export default function Invoices() {
         </div>
       ) : error ? (
         <ErrorState message={error} onRetry={loadAllInvoices} />
+      ) : invoices.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs px-6 py-14 text-center">
+          <h3 className="text-base font-semibold text-slate-900">No invoices yet</h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+            Create your first invoice to start monitoring payments and using AI-powered recovery.
+          </p>
+          <Link
+            to="/invoices/new"
+            className="inline-flex items-center gap-1.5 mt-5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Invoice
+          </Link>
+        </div>
       ) : (
         <InvoiceTable invoices={filteredInvoices} />
       )}
