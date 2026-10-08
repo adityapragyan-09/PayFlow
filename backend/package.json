@@ -1,0 +1,30 @@
+{
+  "name": "payflow-backend",
+  "version": "1.0.0",
+  "description": "PayFlow - AI-Powered Payment Recovery Automation Backend",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "seed": "node src/database/seed.js",
+    "test": "node test/test-gemini-validation.js && node test/test-endpoints.js",
+    "test:api": "node test/test-endpoints.js",
+    "test:validation": "node test/test-gemini-validation.js"
+  },
+  "keywords": [
+    "payment-recovery",
+    "express",
+    "sqlite",
+    "gemini-ai",
+    "hackathon"
+  ],
+  "author": "PayFlow Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  }
+}
