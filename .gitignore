@@ -1,0 +1,18 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Databases
+*.db
+*.db-wal
+*.db-shm
+data/*.db
+
+# Logs & temp
+*.log
+scratch/
+.DS_Store
