@@ -11,16 +11,26 @@ function notFoundHandler(req, res, next) {
 /**
  * Global Error Handler Middleware
  */
+function jsonErrorHandler(err, req, res, next) {
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400 && 'body' in err)) {
+    return error(res, 'Request body must be valid JSON', 400);
+  }
+  return next(err);
+}
+
 function globalErrorHandler(err, req, res, next) {
-  logger.error(`Unhandled Error on ${req.method} ${req.originalUrl}:`, err.stack || err.message);
+  logger.error(`Unhandled Error on ${req.method} ${req.originalUrl}:`, err && err.message ? err.message : err);
 
   const statusCode = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  const message = statusCode >= 500
+    ? 'An unexpected error occurred'
+    : (err.message || 'An unexpected error occurred');
 
-  return error(res, message, statusCode, process.env.NODE_ENV === 'development' ? err.stack : null);
+  return error(res, message, statusCode);
 }
 
 module.exports = {
   notFoundHandler,
+  jsonErrorHandler,
   globalErrorHandler
 };

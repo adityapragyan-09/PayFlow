@@ -4,7 +4,7 @@ const config = require('./config/env');
 const { initSchema } = require('./database/schema');
 const { db, close } = require('./database/db');
 const routes = require('./routes');
-const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
+const { notFoundHandler, jsonErrorHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -13,15 +13,28 @@ const app = express();
 // Middleware Configuration
 // ==========================================
 
+function isLocalDevOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    const localHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    return localHost && (url.protocol === 'http:' || url.protocol === 'https:');
+  } catch (err) {
+    return false;
+  }
+}
+
 // CORS Configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, postman) or matching allowedOrigins
-    if (!origin || config.allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+    // Non-browser clients (curl, tests, server-to-server) send no Origin.
+    if (!origin || config.allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    if (config.nodeEnv !== 'production' && isLocalDevOrigin(origin)) {
       return callback(null, true);
     }
     logger.warn(`[CORS] Blocked request from origin: ${origin}`);
-    return callback(null, true); // Permissive for hackathon development while logging
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -30,8 +43,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Body Parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Request Logging Middleware
 app.use((req, res, next) => {
@@ -70,6 +83,7 @@ app.use('/api', routes);
 // Error Handling
 // ==========================================
 app.use(notFoundHandler);
+app.use(jsonErrorHandler);
 app.use(globalErrorHandler);
 
 // ==========================================

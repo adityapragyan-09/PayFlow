@@ -36,6 +36,10 @@ function looksSensitive(message) {
 }
 
 export function friendlyHttpMessage(status, serverMessage) {
+  if (String(serverMessage || "").toLowerCase().includes("ai analysis is unavailable")) {
+    return "The AI analysis service is unavailable right now. Please try again later.";
+  }
+
   if (looksSensitive(serverMessage)) {
     if (status >= 500) {
       return "The AI analysis service is unavailable right now. Please try again later.";
@@ -102,7 +106,7 @@ async function requestOnce(path, options = {}) {
 
     if (!response.ok || payload?.success === false) {
       const serverMessage = payload?.error || payload?.message || "";
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && response.status >= 500) {
         console.error("[PayFlow API]", response.status, path, serverMessage || payload);
       }
       throw new ApiError(friendlyHttpMessage(response.status, serverMessage), response.status, null);

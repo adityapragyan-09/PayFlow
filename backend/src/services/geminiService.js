@@ -184,8 +184,9 @@ async function analyzeInvoice(invoice, communications) {
       logger.info(`[GeminiService] GEMINI_API_KEY not configured. ALLOW_MOCK_AI=true is enabled; using heuristic analysis.`);
       return analyzeWithHeuristics(invoice, communications);
     }
-    const err = new Error('GEMINI_API_KEY is not configured. Please set a valid GEMINI_API_KEY in your .env file or enable ALLOW_MOCK_AI=true for offline demo.');
-    err.statusCode = 500;
+    logger.error('[GeminiService] GEMINI_API_KEY is not configured and ALLOW_MOCK_AI is not enabled.');
+    const err = new Error('AI analysis is unavailable right now. Please try again later.');
+    err.statusCode = 503;
     throw err;
   }
 
@@ -253,7 +254,9 @@ async function analyzeInvoice(invoice, communications) {
     logger.warn('[GeminiService] Falling back to heuristic analysis due to ALLOW_MOCK_AI=true');
     return analyzeWithHeuristics(invoice, communications);
   }
-  throw lastError;
+  const failure = new Error('AI analysis is unavailable right now. Please try again later.');
+  failure.statusCode = 503;
+  throw failure;
 }
 
 module.exports = {

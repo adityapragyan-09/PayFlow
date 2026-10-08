@@ -305,7 +305,10 @@ function mapInvoiceSummary(row) {
 }
 
 function mapInvoiceDetail(payload) {
-  const invoice = payload.invoice;
+  const invoice = payload?.invoice;
+  if (!invoice) {
+    throw new ApiError("The invoice response was incomplete.", 500);
+  }
   const latest = payload.latest_analysis;
   const summary = mapInvoiceSummary({
     ...invoice,

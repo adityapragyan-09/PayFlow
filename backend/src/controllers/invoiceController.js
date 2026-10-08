@@ -355,7 +355,11 @@ async function analyzeInvoiceEndpoint(req, res) {
     return success(res, storedAnalysis, 200, 'Invoice analyzed successfully');
   } catch (err) {
     logger.error('[InvoiceController] analyzeInvoiceEndpoint error:', err);
-    return error(res, err.message, err.statusCode || 500);
+    const statusCode = err.statusCode || 500;
+    if (statusCode >= 500) {
+      return error(res, 'AI analysis is unavailable right now. Please try again later.', statusCode);
+    }
+    return error(res, err.message, statusCode);
   }
 }
 
