@@ -5,6 +5,7 @@ import KpiCard from "../components/dashboard/KpiCard";
 import PipelineBanner from "../components/dashboard/PipelineBanner";
 import RecoveryQueue from "../components/dashboard/RecoveryQueue";
 import InvoiceTable from "../components/invoices/InvoiceTable";
+import ErrorState from "../components/common/ErrorState";
 import { ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
@@ -12,27 +13,43 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState([]);
   const [recoveryQueue, setRecoveryQueue] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [kpiData, invoiceList, queueList] = await Promise.all([
-          invoiceService.getKpis(),
+  const loadData = () => {
+    let cancelled = false;
+    invoiceService
+      .getKpis()
+      .then(async (kpiData) => {
+        const [invoiceList, queueList] = await Promise.all([
           invoiceService.getAll(),
           recoveryService.getRecoveryQueue(),
         ]);
-        setKpis(kpiData);
-        setInvoices(invoiceList);
-        setRecoveryQueue(queueList);
-      } catch (err) {
-        console.error("Failed to load dashboard data:", err);
-      } finally {
+        return { kpiData, invoiceList, queueList };
+      })
+      .then((result) => {
+        if (cancelled) return;
+        setKpis(result.kpiData);
+        setInvoices(result.invoiceList);
+        setRecoveryQueue(result.queueList);
+        setError("");
         setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setKpis(null);
+        setError(err.message || "Unable to load the dashboard.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  };
+
+  useEffect(() => loadData(), []);
+
+  if (error) {
+    return <ErrorState message={error} onRetry={loadData} />;
+  }
 
   if (loading || !kpis) {
     return (

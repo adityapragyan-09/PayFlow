@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { activityService } from "../services/api";
+import ErrorState from "../components/common/ErrorState";
 import {
   ArrowRight,
   Clock,
@@ -19,22 +20,30 @@ const CATEGORY_MAP = {
 export default function Activity() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  useEffect(() => {
-    async function loadActivity() {
-      try {
-        setLoading(true);
-        const data = await activityService.getGlobalActivity();
+  const loadActivity = () => {
+    let cancelled = false;
+    activityService
+      .getGlobalActivity()
+      .then((data) => {
+        if (cancelled) return;
         setActivities(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
+        setError("");
         setLoading(false);
-      }
-    }
-    loadActivity();
-  }, []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || "Unable to load activity.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  };
+
+  useEffect(() => loadActivity(), []);
 
   const filtered =
     selectedCategory === "all"
@@ -87,6 +96,10 @@ export default function Activity() {
           <div className="p-12 text-center text-slate-400 text-xs">
             Loading activity events...
           </div>
+        ) : error ? (
+          <div className="p-6">
+            <ErrorState message={error} onRetry={loadActivity} />
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
             No events found in this category.
@@ -137,7 +150,7 @@ export default function Activity() {
               {/* View invoice link */}
               <div className="self-end sm:self-center shrink-0">
                 <Link
-                  to={`/invoices/${item.invoiceNumber}`}
+                  to={`/invoices/${item.invoiceId || item.invoiceNumber}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                 >
                   <span>Inspect Invoice</span>

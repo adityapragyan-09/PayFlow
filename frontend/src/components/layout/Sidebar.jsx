@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { invoiceService } from "../../services/api";
 import {
   LayoutDashboard,
   Receipt,
@@ -15,18 +16,21 @@ const NAV_ITEMS = [
     path: "/dashboard",
     icon: LayoutDashboard,
     badge: null,
+    badgeKey: null,
   },
   {
     name: "Invoices",
     path: "/invoices",
     icon: Receipt,
-    badge: "8",
+    badge: null,
+    badgeKey: "invoices",
   },
   {
     name: "Recovery Queue",
     path: "/recovery",
     icon: GitBranch,
-    badge: "5",
+    badge: null,
+    badgeKey: "queue",
     badgeColor: "bg-indigo-100 text-indigo-700",
   },
   {
@@ -39,6 +43,40 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
+  const [counts, setCounts] = useState({ invoices: null, queue: null, confidence: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    invoiceService
+      .getAll()
+      .then((rows) => {
+        if (cancelled) return;
+        const queue = rows.filter(
+          (invoice) =>
+            invoice.status === "Blocked" ||
+            invoice.status === "Recovery Ready" ||
+            invoice.status === "Overdue"
+        );
+        const confidenceValues = rows
+          .map((invoice) => invoice.blockerConfidence)
+          .filter((value) => value > 0);
+        const confidence = confidenceValues.length
+          ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length)
+          : null;
+        setCounts({
+          invoices: rows.length,
+          queue: queue.length,
+          confidence,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setCounts({ invoices: null, queue: null, confidence: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -95,13 +133,13 @@ export default function Sidebar({ isOpen, onClose }) {
                   <Icon className="h-4 w-4 shrink-0" />
                   <span>{item.name}</span>
                 </div>
-                {item.badge && (
+                {(item.badge || (item.badgeKey && counts[item.badgeKey] != null)) && (
                   <span
                     className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                       item.badgeColor || "bg-slate-800 text-slate-300"
                     }`}
                   >
-                    {item.badge}
+                    {item.badgeKey ? counts[item.badgeKey] : item.badge}
                   </span>
                 )}
               </NavLink>
@@ -119,8 +157,10 @@ export default function Sidebar({ isOpen, onClose }) {
             Continuously analyzing B2B customer communications and automating recovery workflows.
           </p>
           <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Accuracy Rate</span>
-            <span className="font-semibold text-emerald-400">96.8%</span>
+            <span>Avg. Confidence</span>
+            <span className="font-semibold text-emerald-400">
+              {counts.confidence == null ? "—" : `${counts.confidence}%`}
+            </span>
           </div>
         </div>
 

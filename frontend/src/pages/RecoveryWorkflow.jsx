@@ -13,6 +13,7 @@ import {
 import StatusBadge from "../components/common/StatusBadge";
 import BlockerBadge from "../components/common/BlockerBadge";
 import PriorityBadge from "../components/common/PriorityBadge";
+import ErrorState from "../components/common/ErrorState";
 
 const STAGES = [
   {
@@ -58,27 +59,39 @@ export default function RecoveryWorkflow() {
   const [selectedStage, setSelectedStage] = useState("all");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        const all = await invoiceService.getAll();
+  const load = () => {
+    let cancelled = false;
+    invoiceService
+      .getAll()
+      .then((all) => {
+        if (cancelled) return;
         setInvoices(all);
-      } catch (err) {
-        console.error(err);
-      } finally {
+        setError("");
         setLoading(false);
-      }
-    }
-    load();
-  }, []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || "Unable to load the recovery pipeline.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  };
+
+  useEffect(() => load(), []);
 
   // Filter invoices according to selected stage tab
   const filteredInvoices =
     selectedStage === "all"
       ? invoices.filter((i) => i.status !== "Paid")
       : invoices.filter((i) => i.workflowStage === selectedStage);
+
+  if (error) {
+    return <ErrorState message={error} onRetry={load} />;
+  }
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoiceService, analysisService, recoveryService } from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
@@ -10,6 +10,7 @@ import ResponseDraftCard from "../components/recovery/ResponseDraftCard";
 import WorkflowPipeline from "../components/recovery/WorkflowPipeline";
 import ActivityFeed from "../components/common/ActivityFeed";
 import RecoveryActionModal from "../components/recovery/RecoveryActionModal";
+import ErrorState from "../components/common/ErrorState";
 import {
   ArrowLeft,
   Send,
@@ -25,32 +26,45 @@ export default function InvoiceDetails() {
 
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [toastIsError, setToastIsError] = useState(false);
+  const [activeId, setActiveId] = useState(id);
 
-  useEffect(() => {
-    async function loadInvoice() {
-      try {
-        setLoading(true);
-        const data = await invoiceService.getById(id);
-        if (data) {
-          setInvoice(data);
-        } else {
-          // If not found by exact ID, fallback to first mock invoice
-          const all = await invoiceService.getAll();
-          setInvoice(all[0]);
-        }
-      } catch (err) {
-        console.error("Error loading invoice:", err);
-      } finally {
+  if (id !== activeId) {
+    setActiveId(id);
+    setLoading(true);
+    setError("");
+    setInvoice(null);
+  }
+
+  const loadInvoice = useCallback(() => {
+    let cancelled = false;
+    invoiceService
+      .getById(id)
+      .then((data) => {
+        if (cancelled) return;
+        setInvoice(data);
+        setError("");
         setLoading(false);
-      }
-    }
-    loadInvoice();
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setInvoice(null);
+        setError(err.message || "Unable to load this invoice.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  const showToast = (msg) => {
+  useEffect(() => loadInvoice(), [loadInvoice]);
+
+  const showToast = (msg, isError = false) => {
+    setToastIsError(isError);
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
@@ -61,24 +75,24 @@ export default function InvoiceDetails() {
     try {
       const updated = await analysisService.analyzePayment(invoice.id);
       setInvoice(updated);
-      showToast("PayFlow AI: Re-analyzed customer intent and re-verified blocker detection.");
+      showToast("PayFlow AI finished a new analysis for this invoice.");
     } catch (err) {
-      console.error(err);
+      showToast(err.message || "Analysis could not be completed.", true);
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const handleConfirmRecovery = async (_options) => {
+  const handleConfirmRecovery = async (options = {}) => {
     if (!invoice) return;
     try {
       const updated = await recoveryService.initiateRecovery(invoice.id, {
-        customNote: `Dispatched ${invoice.recommendedAction} with 1-click settlement link.`,
+        scheduleOption: options.scheduleOption,
       });
       setInvoice(updated);
-      showToast(`Recovery Initiated! Customer outreach sent to ${invoice.customer.contactName}.`);
+      showToast(`Recovery recorded for ${invoice.customer.name}.`);
     } catch (err) {
-      console.error(err);
+      showToast(err.message || "Recovery could not be started.", true);
     }
   };
 
@@ -91,6 +105,10 @@ export default function InvoiceDetails() {
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={loadInvoice} />;
   }
 
   if (!invoice) {
@@ -112,8 +130,8 @@ export default function InvoiceDetails() {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-800 flex items-center gap-2.5 text-xs animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className={`fixed bottom-6 right-6 z-50 text-white px-4 py-3 rounded-xl shadow-xl border flex items-center gap-2.5 text-xs ${toastIsError ? "bg-rose-900 border-rose-800" : "bg-slate-900 border-slate-800"}`}>
+          <CheckCircle2 className={`w-4 h-4 shrink-0 ${toastIsError ? "text-rose-300" : "text-emerald-400"}`} />
           <span>{toastMessage}</span>
         </div>
       )}

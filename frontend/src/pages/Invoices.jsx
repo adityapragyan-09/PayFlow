@@ -1,42 +1,59 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { invoiceService } from "../services/api";
 import InvoiceTable from "../components/invoices/InvoiceTable";
+import ErrorState from "../components/common/ErrorState";
 import { Search, RefreshCw, X } from "lucide-react";
 
 const STATUSES = ["All", "Blocked", "Recovery Ready", "Overdue", "Pending", "Paid"];
 const BLOCKERS = [
   "All",
-  "Cash flow issue",
-  "Invoice dispute",
   "Missing documentation",
+  "Invoice dispute",
   "Approval pending",
   "Payment processing issue",
   "Customer clarification required",
+  "Other",
 ];
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [blockerFilter, setBlockerFilter] = useState("All");
 
   const loadAllInvoices = () => {
     setLoading(true);
-    invoiceService.getAll().then((data) => {
-      setInvoices(data);
-      setLoading(false);
-    });
+    setError("");
+    invoiceService
+      .getAll()
+      .then((data) => {
+        setInvoices(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || "Unable to load invoices.");
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     let isMounted = true;
-    invoiceService.getAll().then((data) => {
-      if (isMounted) {
-        setInvoices(data);
-        setLoading(false);
-      }
-    });
+    invoiceService
+      .getAll()
+      .then((data) => {
+        if (isMounted) {
+          setInvoices(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message || "Unable to load invoices.");
+          setLoading(false);
+        }
+      });
     return () => {
       isMounted = false;
     };
@@ -182,6 +199,8 @@ export default function Invoices() {
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={loadAllInvoices} />
       ) : (
         <InvoiceTable invoices={filteredInvoices} />
       )}
